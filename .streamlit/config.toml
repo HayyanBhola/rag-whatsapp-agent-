@@ -1,0 +1,5 @@
+[server]
+# Streamlit's file watcher scans every loaded library. It trips over
+# transformers (used by the search model) and prints torchvision errors,
+# so it is turned off. Refresh the browser yourself after editing code.
+fileWatcherType = "none"

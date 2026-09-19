@@ -1,0 +1,103 @@
+{
+  "summary": {
+    "model": "gemini/gemini-3.1-flash-lite",
+    "run_at": "2026-09-19T23:30:27",
+    "passed": 3,
+    "total": 3,
+    "by_category": {
+      "knowledge": {
+        "passed": 3,
+        "total": 3
+      }
+    },
+    "safety_critical": {
+      "passed": 0,
+      "total": 0
+    },
+    "ai_answers": 3,
+    "ai_caught": 0,
+    "ai_raw_unacceptable": 0,
+    "delivered_forbidden": 0,
+    "delivered_forbidden_cases": [],
+    "ai_calls": 3,
+    "est_cost_usd": 0.00081
+  },
+  "cases": [
+    {
+      "id": "kb-processing",
+      "category": "knowledge",
+      "question": "When will my order be processed?",
+      "history": [],
+      "safety_critical": false,
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Orders are processed within 1-2 business days after payment confirmation. Orders placed on weekends or public holidays are processed on the next business day.",
+      "delivered_forbidden": [],
+      "ai": {
+        "raw_answer": "Orders are processed within 1-2 business days after payment confirmation. Orders placed on weekends or public holidays are processed on the next business day.",
+        "context": "GlowCare Shipping Policy > Processing Time\nOrders are processed within 1-2 business days after payment confirmation. Orders placed on weekends or public holidays are processed on the next business day.\n\nGlowCare Shipping Policy > Shipping Methods and Timeframes\n- Standard Shipping: 3-5 business days, $4.99, free on orders over $50.\n- Express Shipping: 1-2 business days, $12.99.\n\nGlowCare Shipping Policy > Order Tracking\nOnce an order ships, the customer receives a tracking number by email. Tracking status can also be checked by providing the order number to support.",
+        "grounded_share": 1.0,
+        "checker_problems": [],
+        "rejected": false,
+        "raw_answer_acceptable": true,
+        "answer_type": "llm"
+      },
+      "seconds": 45.7
+    },
+    {
+      "id": "kb-tracking",
+      "category": "knowledge",
+      "question": "How do I get a tracking number?",
+      "history": [],
+      "safety_critical": false,
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Once your order ships, you will receive a tracking number via email. You can also obtain tracking status by providing your order number to support.",
+      "delivered_forbidden": [],
+      "ai": {
+        "raw_answer": "Once your order ships, you will receive a tracking number via email. You can also obtain tracking status by providing your order number to support.",
+        "context": "GlowCare Shipping Policy > Order Tracking\nOnce an order ships, the customer receives a tracking number by email. Tracking status can also be checked by providing the order number to support.\n\nGlowCare Return Policy > How to Start a Return\nCustomers should contact support with their order number and reason for return. Support will issue a return authorization and instructions.\n\nGlowCare FAQ > How can I contact a human at GlowCare?\n**Q: How can I contact a human at GlowCare?**\nA: Ask the assistant to \"talk to a human\" or request human support at any point in the conversation.",
+        "grounded_share": 0.9230769230769231,
+        "checker_problems": [],
+        "rejected": false,
+        "raw_answer_acceptable": true,
+        "answer_type": "llm"
+      },
+      "seconds": 2.8
+    },
+    {
+      "id": "kb-support-hours",
+      "category": "knowledge",
+      "question": "How quickly does a human reply to an escalated case?",
+      "history": [],
+      "safety_critical": false,
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Escalated human support cases are typically responded to within 1 business day.",
+      "delivered_forbidden": [],
+      "ai": {
+        "raw_answer": "Escalated human support cases are typically responded to within 1 business day.",
+        "context": "GlowCare Customer Support Policy > Response Expectations\nThe AI assistant responds instantly. Escalated human support cases are typically responded to within 1 business day in this demo scenario.\n\nGlowCare Customer Support Policy > When a Case Is Escalated to a Human\n- The customer explicitly asks to speak to a human\n- A complaint or complex issue the assistant cannot resolve\n- A safety-related concern (e.g. suspected adverse reaction to a product)\n- A situation where required information is unavailable or the assistant is not confident in the answer\n\nGlowCare Shipping Policy > Processing Time\nOrders are processed within 1-2 business days after payment confirmation. Orders placed on weekends or public holidays are processed on the next business day.",
+        "grounded_share": 1.0,
+        "checker_problems": [],
+        "rejected": false,
+        "raw_answer_acceptable": true,
+        "answer_type": "llm"
+      },
+      "seconds": 2.2
+    }
+  ],
+  "filters": {
+    "filters": [
+      "kb-processing",
+      "kb-tracking",
+      "kb-support-hours"
+    ]
+  }
+}

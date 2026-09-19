@@ -1,0 +1,313 @@
+{
+  "name": "GlowCare 2 - Escalation alerts by email (every minute)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## New escalations -> email\nEvery minute: asks the API for cases the team hasn't been told about (new cases, or cases that became more urgent), emails each one, then marks it sent.\n\nIf the email fails, the alert is NOT marked sent, so it is tried again next minute: late, never lost.\n\nLow-priority cases (\"I don't have that information\") go in the daily summary instead.\n\n**Edit Config:** email_from, email_to.",
+        "height": 320,
+        "width": 560
+      },
+      "id": "6a92ef24-a219-58bd-b9c6-ece0b901151b",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "07031257-b51d-5273-98cf-d2b9f6621ef9",
+      "name": "Every minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3dc76a57-a272-5943-b7ab-e4f7c8eef060",
+              "name": "api_url",
+              "value": "http://127.0.0.1:8000",
+              "type": "string"
+            },
+            {
+              "id": "06a5d433-c85b-5539-9089-3e62dfc4db36",
+              "name": "api_key",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "77e7c3ec-4b00-5969-89cf-8ad104809966",
+              "name": "email_from",
+              "value": "PASTE_YOUR_GMAIL@gmail.com",
+              "type": "string"
+            },
+            {
+              "id": "e846cc47-7a89-50ca-ac65-21cdbab40a72",
+              "name": "email_to",
+              "value": "PASTE_WHO_GETS_ALERTS@gmail.com",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ee09d59f-27c8-5430-8d35-57207a46bc58",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ],
+      "notes": "EDIT ME: api_url = where python -m api.server runs; api_key = your GLOWCARE_API_KEY from .env (leave empty if you didn't set one); email_from = your Gmail (the one in the credential); email_to = who gets the alerts (can be the same)",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.api_url }}/alerts/escalations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.api_key }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "93bdca1c-425c-5e68-9c85-dfb40aa87fca",
+      "name": "Get new alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6d924d72-c923-5734-81d1-6f2e798616f7",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8c273240-3e05-56dc-81ef-e41c9092ef28",
+      "name": "Any alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "alerts",
+        "options": {}
+      },
+      "id": "08ba4eb2-136a-54ea-8207-445e42533732",
+      "name": "One item per alert",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        880,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').first().json.email_from }}",
+        "toEmail": "={{ $('Config').first().json.email_to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "5ce07d95-f272-50cb-9753-4c389a44644a",
+      "name": "Send email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        80
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "GlowCareGmail",
+          "name": "GlowCare Gmail"
+        }
+      },
+      "webhookId": "f3f9c59e-acfd-5ed8-8765-04ef85d0d4df",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_url }}/alerts/escalations/{{ $('One item per alert').item.json.escalation_id }}/sent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.api_key }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ priority: $('One item per alert').item.json.priority }) }}"
+      },
+      "id": "8e8a3073-2ecb-5c7e-8974-e29625cc4728",
+      "name": "Mark alert sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "errorType": "errorMessage",
+        "errorMessage": "=The email for {{ $('One item per alert').item.json.reference }} could not be sent: {{ $json.error?.message ?? $json.error ?? 'unknown error' }}. Check the Gmail credential (app password) and email_from / email_to in Config. It will be tried again next run."
+      },
+      "id": "c95aab75-0764-5867-8fd1-e1657b9ada65",
+      "name": "Email failed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Mark alert sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every minute": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get new alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get new alerts": {
+      "main": [
+        [
+          {
+            "node": "Any alerts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any alerts?": {
+      "main": [
+        [
+          {
+            "node": "One item per alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per alert": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "f89b989375775e50"
+}

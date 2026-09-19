@@ -1,0 +1,139 @@
+{
+  "passed": 10,
+  "total": 10,
+  "model": "gemini/gemini-3.1-flash-lite",
+  "cases": [
+    {
+      "id": "kb-return-opened",
+      "question": "Can I return a product after opening it?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Opened or used products are eligible for return only if you experienced an adverse reaction or the product arrived damaged or defective. In these cases, please contact support with details before returning. You must provide proof of purchase, and returns must be made within 30 days of delivery.",
+      "answer_type": "llm",
+      "llm_answer": "Opened or used products are eligible for return only if you experienced an adverse reaction or the product arrived damaged or defective. In these cases, please contact support with details before returning. You must provide proof of purchase, and returns must be made within 30 days of delivery.",
+      "checker_problems": [],
+      "seconds": 37.8
+    },
+    {
+      "id": "kb-uk",
+      "question": "Do you sell products in the UK?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "GlowCare currently ships within the country of operation only. International shipping is not available in this demo version.",
+      "answer_type": "llm",
+      "llm_answer": "GlowCare currently ships within the country of operation only. International shipping is not available in this demo version.",
+      "checker_problems": [],
+      "seconds": 1.9
+    },
+    {
+      "id": "kb-return-window",
+      "question": "How many days do I have to return something?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Products may be returned within 30 days of delivery.",
+      "answer_type": "llm",
+      "llm_answer": "Products may be returned within 30 days of delivery.",
+      "checker_problems": [],
+      "seconds": 1.4
+    },
+    {
+      "id": "kb-shipping-cost",
+      "question": "How much is standard shipping?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Standard shipping costs $4.99, or it is free on orders over $50.",
+      "answer_type": "llm",
+      "llm_answer": "Standard shipping costs $4.99, or it is free on orders over $50.",
+      "checker_problems": [],
+      "seconds": 2.6
+    },
+    {
+      "id": "kb-refund-time",
+      "question": "How long do refunds take?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Refunds are processed within 5-7 business days after approval, and it may take an additional 3-5 business days for the refund to appear on your statement depending on your bank or card issuer.",
+      "answer_type": "llm",
+      "llm_answer": "Refunds are processed within 5-7 business days after approval, and it may take an additional 3-5 business days for the refund to appear on your statement depending on your bank or card issuer.",
+      "checker_problems": [],
+      "seconds": 2.5
+    },
+    {
+      "id": "kb-cancel",
+      "question": "How do I cancel my order?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "To cancel your order, you must provide your order number to support so they can confirm if cancellation is possible. Orders can be cancelled free of charge within 2 hours of being placed if they have not yet entered processing. After processing has started, you must contact support to attempt to stop the shipment.",
+      "answer_type": "llm",
+      "llm_answer": "To cancel your order, you must provide your order number to support so they can confirm if cancellation is possible. Orders can be cancelled free of charge within 2 hours of being placed if they have not yet entered processing. After processing has started, you must contact support to attempt to stop the shipment.",
+      "checker_problems": [],
+      "seconds": 11.7
+    },
+    {
+      "id": "kb-animal-testing",
+      "question": "Are your products tested on animals?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "No, GlowCare products are not tested on animals.",
+      "answer_type": "llm",
+      "llm_answer": "No, GlowCare products are not tested on animals.",
+      "checker_problems": [],
+      "seconds": 1.8
+    },
+    {
+      "id": "kb-niacinamide-explained",
+      "question": "What does niacinamide do?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Niacinamide is a form of vitamin B3 commonly used to help with the appearance of pores, uneven texture, and oil balance.",
+      "answer_type": "llm",
+      "llm_answer": "Niacinamide is a form of vitamin B3 commonly used to help with the appearance of pores, uneven texture, and oil balance.",
+      "checker_problems": [],
+      "seconds": 2.3
+    },
+    {
+      "id": "kb-no-medical-claims",
+      "question": "Will the sunscreen cure my acne?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Here is what our Ingredients Guide says under \"Overview\":\n\n**Dimethicone** \u2014 A silicone-based ingredient that gives products a smooth, lightweight feel and can help reduce moisture loss.\n\n**Zinc Oxide / Titanium Dioxide** \u2014 Mineral UV filters used in sunscreens to help protect skin from UVA/UVB rays.\n\n**Panthenol** \u2014 A form of provitamin B5 used to help soothe and moisturize skin.\n\n**Allantoin** \u2014 An ingredient known for its soothing, skin-conditioning properties.",
+      "answer_type": "quoted_source",
+      "llm_answer": "I'm sorry, I don't have that information. A GlowCare team member can help you further.",
+      "checker_problems": [
+        "model refused, but the top chunk is a very strong match"
+      ],
+      "seconds": 2.2
+    },
+    {
+      "id": "kb-not-covered",
+      "question": "Do you have a loyalty rewards program?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "I'm sorry, I don't have that information. A GlowCare team member can help you further.",
+      "answer_type": "not_found",
+      "llm_answer": "I'm sorry, I don't have that information. A GlowCare team member can help you further.",
+      "checker_problems": [],
+      "seconds": 1.5
+    }
+  ]
+}

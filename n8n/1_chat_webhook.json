@@ -1,0 +1,257 @@
+{
+  "name": "GlowCare 1 - Chat webhook (message in, reply out)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## GlowCare chat webhook\nAny app (and WhatsApp in Phase 12) sends a customer message here and gets the agent's reply back.\n\n**Send:** POST http://localhost:5678/webhook/glowcare-chat\n```\n{\"message\": \"How much is the serum?\", \"session_id\": \"customer-1\"}\n```\nSame `session_id` = same chat (memory, one escalation per chat).\n\nNeeds `python -m api.server` running. Edit **Config** only if you changed the API address or set an API key.",
+        "height": 320,
+        "width": 560
+      },
+      "id": "ab6fb475-b759-5c9e-8273-5df3492a3599",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "glowcare-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9f5e78a4-2931-5cee-9262-c9860768da7e",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        100
+      ],
+      "webhookId": "f6ba49cb-9440-5dbf-8830-ad38c2f8ac31"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "eb1d3a69-f13e-5ccb-bf8c-1f510d243d05",
+              "leftValue": "={{ String($json.body?.message ?? '').trim().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "360ac4ba-b528-55de-83e2-7653e30b3942",
+      "name": "Has a message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "72e764a4-56e3-528b-b6d8-8ab09a382964",
+              "name": "api_url",
+              "value": "http://127.0.0.1:8000",
+              "type": "string"
+            },
+            {
+              "id": "650d27e4-7429-5cd1-a0f3-1409cbbf03b0",
+              "name": "api_key",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "aed3d642-206c-5cd3-9eee-bc8f9e393391",
+              "name": "channel",
+              "value": "n8n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ba5af4d4-0f02-52a9-9c0c-8c831efc2066",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "notes": "EDIT ME: api_url = where python -m api.server runs; api_key = your GLOWCARE_API_KEY from .env (leave empty if you didn't set one)",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.api_url }}/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.api_key }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 180000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $('Webhook').first().json.body.message, session_id: $('Webhook').first().json.body.session_id ?? null, channel: $('Config').first().json.channel }) }}"
+      },
+      "id": "2c3cb404-a21d-5983-8228-e49fd97ed705",
+      "name": "Ask the agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: $json.ok, reply: $json.reply, conversation_id: $json.conversation_id, escalated: $json.escalated, escalation: $json.escalation }) }}",
+        "options": {}
+      },
+      "id": "687a7b54-e49e-5894-a342-5bf09adcb27a",
+      "name": "Send the reply",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, reply: \"Sorry, I'm having a technical problem right now. Please try again in a few minutes, or contact GlowCare support directly.\", error: 'GlowCare API call failed (' + ($json.error?.message ?? $json.error ?? 'no details') + '). Is python -m api.server running, and does api_key in Config match GLOWCARE_API_KEY in .env?' }) }}",
+        "options": {
+          "responseCode": 503
+        }
+      },
+      "id": "323b9492-2960-57df-8c77-dcb0ac178263",
+      "name": "Agent call failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: 'Send JSON like {\"message\": \"How much is the serum?\", \"session_id\": \"customer-1\"}' }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "dc3d3582-9e91-5892-bcbc-d064a211029e",
+      "name": "Bad request",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        180
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Has a message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has a message?": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Ask the agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask the agent": {
+      "main": [
+        [
+          {
+            "node": "Send the reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agent call failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "5fc186665eaa5c5c"
+}

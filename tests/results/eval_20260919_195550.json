@@ -1,0 +1,139 @@
+{
+  "passed": 10,
+  "total": 10,
+  "model": "openai/gpt-4o-mini",
+  "cases": [
+    {
+      "id": "kb-return-opened",
+      "question": "Can I return a product after opening it?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Opened or used products are eligible for return ONLY if the customer experienced an adverse reaction or the product arrived damaged/defective. In these cases, you must contact support with details before returning.",
+      "answer_type": "llm",
+      "llm_answer": "Opened or used products are eligible for return ONLY if the customer experienced an adverse reaction or the product arrived damaged/defective. In these cases, you must contact support with details before returning.",
+      "checker_problems": [],
+      "seconds": 41.2
+    },
+    {
+      "id": "kb-uk",
+      "question": "Do you sell products in the UK?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "GlowCare currently ships within the country of operation only for this demo. International shipping is not available in this demo version.",
+      "answer_type": "llm",
+      "llm_answer": "GlowCare currently ships within the country of operation only for this demo. International shipping is not available in this demo version.",
+      "checker_problems": [],
+      "seconds": 1.4
+    },
+    {
+      "id": "kb-return-window",
+      "question": "How many days do I have to return something?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Products may be returned within 30 days of delivery.",
+      "answer_type": "llm",
+      "llm_answer": "Products may be returned within 30 days of delivery.",
+      "checker_problems": [],
+      "seconds": 1.4
+    },
+    {
+      "id": "kb-shipping-cost",
+      "question": "How much is standard shipping?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Standard shipping costs $4.99 and is free on orders over $50. It typically takes 3-5 business days for delivery.",
+      "answer_type": "llm",
+      "llm_answer": "Standard shipping costs $4.99 and is free on orders over $50. It typically takes 3-5 business days for delivery.",
+      "checker_problems": [],
+      "seconds": 0.9
+    },
+    {
+      "id": "kb-refund-time",
+      "question": "How long do refunds take?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Refunds are processed within 5-7 business days after approval. It may take an additional 3-5 business days for the refund to appear on the customer's statement, depending on their bank or card issuer.",
+      "answer_type": "llm",
+      "llm_answer": "Refunds are processed within 5-7 business days after approval. It may take an additional 3-5 business days for the refund to appear on the customer's statement, depending on their bank or card issuer.",
+      "checker_problems": [],
+      "seconds": 1.0
+    },
+    {
+      "id": "kb-cancel",
+      "question": "How do I cancel my order?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Customers can request cancellation by providing their order number to support. Support will confirm whether cancellation is still possible based on order status.",
+      "answer_type": "llm",
+      "llm_answer": "Customers can request cancellation by providing their order number to support. Support will confirm whether cancellation is still possible based on order status.",
+      "checker_problems": [],
+      "seconds": 1.3
+    },
+    {
+      "id": "kb-animal-testing",
+      "question": "Are your products tested on animals?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "No, GlowCare products are not tested on animals.",
+      "answer_type": "llm",
+      "llm_answer": "No, GlowCare products are not tested on animals.",
+      "checker_problems": [],
+      "seconds": 0.8
+    },
+    {
+      "id": "kb-niacinamide-explained",
+      "question": "What does niacinamide do?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Niacinamide is a form of vitamin B3 commonly used to help with the appearance of pores, uneven texture, and oil balance.",
+      "answer_type": "llm",
+      "llm_answer": "Niacinamide is a form of vitamin B3 commonly used to help with the appearance of pores, uneven texture, and oil balance.",
+      "checker_problems": [],
+      "seconds": 0.9
+    },
+    {
+      "id": "kb-no-medical-claims",
+      "question": "Will the sunscreen cure my acne?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "Here is what our Ingredients Guide says under \"Overview\":\n\n**Dimethicone** \u2014 A silicone-based ingredient that gives products a smooth, lightweight feel and can help reduce moisture loss.\n\n**Zinc Oxide / Titanium Dioxide** \u2014 Mineral UV filters used in sunscreens to help protect skin from UVA/UVB rays.\n\n**Panthenol** \u2014 A form of provitamin B5 used to help soothe and moisturize skin.\n\n**Allantoin** \u2014 An ingredient known for its soothing, skin-conditioning properties.",
+      "answer_type": "quoted_source",
+      "llm_answer": "I'm sorry, I don't have that information. A GlowCare team member can help you further.",
+      "checker_problems": [
+        "model refused, but the top chunk is a very strong match"
+      ],
+      "seconds": 0.8
+    },
+    {
+      "id": "kb-not-covered",
+      "question": "Do you have a loyalty rewards program?",
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "I'm sorry, I don't have that information. A GlowCare team member can help you further.",
+      "answer_type": "not_found",
+      "llm_answer": "I'm sorry, I don't have that information. A GlowCare team member can help you further.",
+      "checker_problems": [],
+      "seconds": 0.8
+    }
+  ]
+}

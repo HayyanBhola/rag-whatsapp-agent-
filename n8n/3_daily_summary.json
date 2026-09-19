@@ -1,0 +1,184 @@
+{
+  "name": "GlowCare 3 - Daily summary by email (9:00)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Daily summary\nEvery morning at 9:00 (Karachi time): yesterday's chats, where answers came from, new and open escalations, and the questions the agent couldn't answer (= what the documents are missing).\n\nDemo and test chats are left out.\n\n**Edit Config:** email_from, email_to. Change the time in **Every day at 9:00**.",
+        "height": 280,
+        "width": 520
+      },
+      "id": "8d7feb99-47a1-5c75-af01-d6593348cd56",
+      "name": "About",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "c6b8a692-b5e3-51ec-8b8b-0374446f2395",
+      "name": "Every day at 9:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b762f8d2-a079-55c4-a3bd-6ddeda3d3489",
+              "name": "api_url",
+              "value": "http://127.0.0.1:8000",
+              "type": "string"
+            },
+            {
+              "id": "cfb5480e-a141-5490-a320-ad05c6cbbd71",
+              "name": "api_key",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "410f23bd-0edc-5389-8c84-0ef0d4fe0e1c",
+              "name": "email_from",
+              "value": "PASTE_YOUR_GMAIL@gmail.com",
+              "type": "string"
+            },
+            {
+              "id": "73c3121f-e867-503d-957b-ce54e60b2d88",
+              "name": "email_to",
+              "value": "PASTE_WHO_GETS_ALERTS@gmail.com",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2f1df931-95ed-5603-8dc0-abfb85e1c3af",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ],
+      "notes": "EDIT ME: api_url = where python -m api.server runs; api_key = your GLOWCARE_API_KEY from .env (leave empty if you didn't set one); email_from = your Gmail (the one in the credential); email_to = who gets the alerts (can be the same)",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.api_url }}/reports/daily?days=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Config').first().json.api_key }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "e7a89db8-d1ef-5912-8fb4-575161b5efea",
+      "name": "Get the summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').first().json.email_from }}",
+        "toEmail": "={{ $('Config').first().json.email_to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "dd6356e1-0537-579e-b712-98bf254540ee",
+      "name": "Send email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        660,
+        100
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "GlowCareGmail",
+          "name": "GlowCare Gmail"
+        }
+      },
+      "webhookId": "3a4b8ddc-2378-5482-b922-5e833ec1267c"
+    }
+  ],
+  "connections": {
+    "Every day at 9:00": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get the summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get the summary": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "4f90c370cee25926"
+}

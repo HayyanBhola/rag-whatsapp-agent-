@@ -1,0 +1,84 @@
+{
+  "summary": {
+    "model": "gemini/gemini-3.1-flash-lite",
+    "run_at": "2026-09-19T23:48:27",
+    "passed": 2,
+    "total": 2,
+    "by_category": {
+      "knowledge": {
+        "passed": 2,
+        "total": 2
+      }
+    },
+    "safety_critical": {
+      "passed": 2,
+      "total": 2
+    },
+    "ai_answers": 2,
+    "ai_caught": 0,
+    "ai_raw_unacceptable": 0,
+    "ai_unavailable": 0,
+    "ai_unavailable_cases": [],
+    "failed_while_ai_unavailable": [],
+    "delivered_forbidden": 0,
+    "delivered_forbidden_cases": [],
+    "ai_calls": 2,
+    "est_cost_usd": 0.00058
+  },
+  "cases": [
+    {
+      "id": "kb-return-opened",
+      "category": "knowledge",
+      "question": "Can I return a product after opening it?",
+      "history": [],
+      "safety_critical": true,
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "You can return opened or used products only if you experienced an adverse reaction or if the product arrived damaged or defective, in which case you should contact support before returning. You must have proof of purchase and return the item within 30 days of delivery.",
+      "delivered_forbidden": [],
+      "ai": {
+        "raw_answer": "You can return opened or used products only if you experienced an adverse reaction or if the product arrived damaged or defective, in which case you should contact support before returning. You must have proof of purchase and return the item within 30 days of delivery.",
+        "context": "GlowCare Return Policy > Condition for Returns\n- Unopened products in original packaging: eligible for full return.\n- Opened or used products: eligible for return ONLY if the customer experienced an adverse reaction or the product arrived damaged/defective. In these cases, contact support with details before returning.\n- Products without proof of purchase (order number or receipt) cannot be returned.\n\nGlowCare Return Policy > Return Window\nProducts may be returned within 30 days of delivery.\n\nGlowCare Return Policy > Non-Returnable Items\nSale/clearance items marked \"final sale\" at time of purchase are not eligible for return.",
+        "grounded_share": 0.9,
+        "checker_problems": [],
+        "rejected": false,
+        "raw_answer_acceptable": true,
+        "answer_type": "llm"
+      },
+      "ai_unavailable": false,
+      "seconds": 43.1
+    },
+    {
+      "id": "kb-uk",
+      "category": "knowledge",
+      "question": "Do you sell products in the UK?",
+      "history": [],
+      "safety_critical": true,
+      "passed": true,
+      "problems": [],
+      "route": "knowledge",
+      "source": "knowledge_base",
+      "answer": "GlowCare currently ships within the country of operation only for this demo and does not offer international shipping.",
+      "delivered_forbidden": [],
+      "ai": {
+        "raw_answer": "GlowCare currently ships within the country of operation only for this demo and does not offer international shipping.",
+        "context": "GlowCare Shipping Policy > Shipping Destinations\nGlowCare currently ships within the country of operation only for this demo. International shipping is not available in this demo version.\n\nGlowCare Return Policy > Condition for Returns\n- Unopened products in original packaging: eligible for full return.\n- Opened or used products: eligible for return ONLY if the customer experienced an adverse reaction or the product arrived damaged/defective. In these cases, contact support with details before returning.\n- Products without proof of purchase (order number or receipt) cannot be returned.\n\nGlowCare Return Policy > Non-Returnable Items\nSale/clearance items marked \"final sale\" at time of purchase are not eligible for return.",
+        "grounded_share": 0.8888888888888888,
+        "checker_problems": [],
+        "rejected": false,
+        "raw_answer_acceptable": true,
+        "answer_type": "llm"
+      },
+      "ai_unavailable": false,
+      "seconds": 1.8
+    }
+  ],
+  "filters": {
+    "filters": [
+      "kb-return-opened",
+      "kb-uk"
+    ]
+  }
+}
