@@ -23,6 +23,7 @@ returning something that looks like a real answer.
 """
 
 import os
+import threading
 import time
 
 import requests
@@ -167,6 +168,7 @@ def _call_chat_api(provider, url, api_key, model, prompt, system_prompt, timeout
     answer = data["choices"][0]["message"].get("content") or ""
     usage = data.get("usage") or {}
     _record_usage(usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0))
+    _record_request_usage(usage.get("prompt_tokens"), usage.get("completion_tokens"))
     return answer.strip()
 
 
@@ -195,7 +197,10 @@ def _call_ollama(prompt: str, system_prompt: str, timeout: int) -> str:
             f"Ollama returned an error. Is the model '{OLLAMA_MODEL}' pulled? "
             f"Run `ollama pull {OLLAMA_MODEL}` if not. Original error: {e}"
         ) from e
-    return response.json()["response"].strip()
+    data = response.json()
+    # Ollama reports its own token counts; kept out of usage_totals (it's free).
+    _record_request_usage(data.get("prompt_eval_count"), data.get("eval_count"))
+    return data["response"].strip()
 
 
 # --- Token counter (OpenAI / Gemini) -------------------------------------
@@ -217,6 +222,29 @@ def _record_usage(input_tokens: int, output_tokens: int):
     usage_totals["input_tokens"] += input_tokens
     usage_totals["output_tokens"] += output_tokens
     usage_totals["calls"] += 1
+
+
+# Per-request counter, for the API's /chat metadata. One per thread: the API
+# answers each request start to finish on one worker thread, so concurrent
+# requests never mix their counts. None = no LLM call reported tokens.
+_request_usage = threading.local()
+
+
+def reset_request_usage():
+    _request_usage.prompt_tokens = None
+    _request_usage.completion_tokens = None
+
+
+def request_usage() -> dict:
+    """Tokens used on this thread since reset_request_usage()."""
+    return {"prompt_tokens": getattr(_request_usage, "prompt_tokens", None),
+            "completion_tokens": getattr(_request_usage, "completion_tokens", None)}
+
+
+def _record_request_usage(prompt_tokens, completion_tokens):
+    for name, value in (("prompt_tokens", prompt_tokens), ("completion_tokens", completion_tokens)):
+        if isinstance(value, int):
+            setattr(_request_usage, name, (getattr(_request_usage, name, None) or 0) + value)
 
 
 def estimated_cost_usd():

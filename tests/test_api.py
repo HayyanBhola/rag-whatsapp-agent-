@@ -14,17 +14,20 @@ costs nothing. Everything it creates is deleted at the end.
 
 import re
 import sys
+import uuid
 from unittest import mock
 
 from fastapi.testclient import TestClient
 
+from agent import llm_client
 from api import server
 from database import db, notifications as nt
 
 CHANNEL = "apitest"  # a channel only this test uses
 checks = []
 created = set()
-client = TestClient(server.app)
+# Sends the key from .env (if one is set), the way n8n does.
+client = TestClient(server.app, headers={"X-API-Key": server.API_KEY} if server.API_KEY else None)
 
 
 def check(name, condition, detail=""):
@@ -72,6 +75,20 @@ def email_ok(item):
             and "<br>" in item.get("html", "") and "<script" not in item["html"].lower())
 
 
+def is_uuid(value):
+    try:
+        return str(uuid.UUID(value)) == value
+    except (TypeError, ValueError, AttributeError):
+        return False
+
+
+def db_snapshot():
+    """Row count and highest id of every table a chat can write to."""
+    return {table: tuple(sql(f"SELECT COUNT(*) AS n, MAX({key}) AS top FROM {table}")[0].values())
+            for table, key in (("conversations", "conversation_id"), ("messages", "message_id"),
+                               ("escalations", "escalation_id"))}
+
+
 def cleanup():
     ids = list(created) + [r["conversation_id"] for r in
                            sql("SELECT conversation_id FROM conversations WHERE channel = %s", (CHANNEL,))]
@@ -113,7 +130,9 @@ def main():
             (a["conversation_id"],))
         sql("UPDATE conversations SET started_at = started_at - INTERVAL '25 hours' WHERE conversation_id = %s",
             (a["conversation_id"],))
-        _, d = chat("Hi again", session="cust-1")
+        # "Hi", not "Hi again": the router sends "Hi again" to the knowledge
+        # base (see docs/known_issues.md), which escalates and keeps the chat open.
+        _, d = chat("Hi", session="cust-1")
         check("more than 24 h later: a new chat", d["conversation_id"] != a["conversation_id"] and d["new_chat"])
         db.close_conversation(d["conversation_id"])
         _, e = chat("Hello?", session="cust-1")
@@ -233,7 +252,8 @@ def main():
 
         # 14. API key.
         with mock.patch.object(server, "API_KEY", "secret-test-key"):
-            no_key = client.post("/chat", json={"message": "hi", "channel": CHANNEL})
+            no_key = client.post("/chat", json={"message": "hi", "channel": CHANNEL},
+                                 headers={"X-API-Key": ""})
             wrong = client.get("/alerts/escalations", headers={"X-API-Key": "nope"})
             right = client.get("/alerts/escalations", headers={"X-API-Key": "secret-test-key"})
             health = client.get("/health")
@@ -241,6 +261,78 @@ def main():
         check("with GLOWCARE_API_KEY set: wrong key -> 401", wrong.status_code == 401)
         check("with GLOWCARE_API_KEY set: right key -> 200", right.status_code == 200)
         check("/health never needs the key", health.status_code == 200)
+
+        # 15. Audit metadata on every /chat response (for evaluation tools).
+        _, m = chat("How much is the Niacinamide Serum?")
+        check("metadata: request_id is a UUID, latency_ms a number",
+              is_uuid(m.get("request_id")) and isinstance(m.get("latency_ms"), (int, float))
+              and m["latency_ms"] >= 0, m)
+        check("metadata: reason, intents, model have the right types",
+              isinstance(m.get("reason"), str) and m["reason"] and isinstance(m.get("intents"), list)
+              and "price" in m["intents"] and isinstance(m.get("model"), str) and "/" in m["model"], m)
+        check("metadata: database facts in details are plain JSON (price is a number)",
+              isinstance(m.get("details"), list) and m["details"]
+              and isinstance(m["details"][0].get("price"), (int, float)), m.get("details"))
+        check("metadata: no documents or LLM on the database route",
+              m.get("retrieved_chunks") is None and m.get("prompt_tokens") is None
+              and m.get("completion_tokens") is None and m.get("eval_mode") is False, m)
+        _, m2 = chat("How much is the Niacinamide Serum?")
+        check("metadata: a new request_id per request", m2.get("request_id") != m.get("request_id"))
+
+        # Knowledge route with the AI replaced (no cost, works offline): the
+        # retrieved chunks and the token counts come through.
+        def fake_llm(prompt, system_prompt="", timeout=60):
+            llm_client._record_request_usage(120, 30)
+            return "Opened products can be returned within 30 days."
+        with mock.patch("agent.responder.call_llm", side_effect=fake_llm):
+            _, k = chat("Can I return a product after opening it?")
+        chunks = k.get("retrieved_chunks")
+        check("knowledge route: retrieved_chunks have id, text, score, source",
+              k.get("route") == "knowledge" and isinstance(chunks, list) and chunks
+              and all(isinstance(c["id"], str) and re.fullmatch(r".+\.md-\d+", c["id"])
+                      and isinstance(c["text"], str) and isinstance(c["score"], (int, float))
+                      and isinstance(c["source"], str) for c in chunks), k)
+        check("knowledge route: details has the LLM answer and checker results",
+              isinstance(k.get("details"), dict) and k["details"].get("llm_answer")
+              and isinstance(k["details"].get("problems"), list)
+              and k["details"].get("chunks_used"), k.get("details"))
+        check("knowledge route: prompt_tokens / completion_tokens from the LLM",
+              k.get("prompt_tokens") == 120 and k.get("completion_tokens") == 30, k)
+
+        # 16. Eval mode: same answers, nothing saved.
+        with mock.patch.object(server, "API_KEY", ""):
+            no_key_set = client.post("/chat", json={"message": "hi", "eval_mode": True})
+        check("eval_mode without GLOWCARE_API_KEY configured -> 403", no_key_set.status_code == 403,
+              no_key_set.text)
+        alerts_before, rows_before = set(pending_ids()), db_snapshot()
+        with mock.patch.object(server, "API_KEY", "secret-test-key"):
+            key = {"X-API-Key": "secret-test-key"}
+            missing = client.post("/chat", json={"message": "hi", "eval_mode": True},
+                                  headers={"X-API-Key": ""})
+            wrong = client.post("/chat", json={"message": "hi", "eval_mode": True},
+                                headers={"X-API-Key": "nope"})
+            with_session = client.post("/chat", json={"message": "hi", "eval_mode": True,
+                                                      "session_id": "cust-9"}, headers=key)
+            with_conv = client.post("/chat", json={"message": "hi", "eval_mode": True,
+                                                   "conversation_id": a["conversation_id"]}, headers=key)
+            price = client.post("/chat", json={"message": "How much is the Niacinamide Serum?",
+                                               "channel": CHANNEL, "eval_mode": True}, headers=key)
+            rash = client.post("/chat", json={"message": "I got a rash after using the cleanser",
+                                              "channel": CHANNEL, "eval_mode": True}, headers=key)
+        alerts_after, rows_after = set(pending_ids()), db_snapshot()
+        check("eval_mode: missing / wrong key -> 401", missing.status_code == 401 and wrong.status_code == 401)
+        check("eval_mode + session_id or conversation_id -> 422",
+              with_session.status_code == 422 and with_conv.status_code == 422)
+        p, s = price.json(), rash.json()
+        check("eval_mode: answers the same way (price from the database)",
+              price.status_code == 200 and p["ok"] and p["route"] == "database" and "$" in p["reply"]
+              and p["eval_mode"] is True and p["conversation_id"] is None, p)
+        check("eval_mode: skin reaction still routed to escalate, but no case is saved",
+              rash.status_code == 200 and s["route"] == "escalate" and s["escalated"]
+              and s["escalation"] is None and "ESC-" not in s["reply"], s)
+        check("eval_mode writes nothing (conversations, messages, escalations unchanged)",
+              rows_before == rows_after, (rows_before, rows_after))
+        check("eval_mode creates no team alerts", alerts_before == alerts_after)
     finally:
         print(f"(cleaned up {cleanup()} test conversations)")
 

@@ -27,16 +27,22 @@ Security
     n8n that faces the internet, never this API.
   - Optional API key: set GLOWCARE_API_KEY in .env and every request (except
     /health) must send the header  X-API-Key: <that value>.
+  - /chat with "eval_mode": true (for an evaluation tool) saves nothing: no
+    chat, no message log, no escalation, so no team alerts. It is refused
+    (403) unless GLOWCARE_API_KEY is set, so it can't be used anonymously.
 """
 
 import hmac
 import logging
 import os
 import re
+import time
+import uuid
 from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field, field_validator
 
 from api import messages
@@ -103,6 +109,11 @@ class ChatRequest(BaseModel):
     channel: str = Field(default="api", description="Where the message came from: api, n8n, whatsapp, ...")
     conversation_id: Optional[int] = Field(
         default=None, description="Continue this exact chat instead (overrides session_id).")
+    eval_mode: bool = Field(
+        default=False,
+        description="For evaluation tools: answer exactly as usual but save nothing (no chat, "
+                    "message log or escalation, so no alerts). Needs GLOWCARE_API_KEY to be set; "
+                    "can't be combined with session_id or conversation_id.")
 
     @field_validator("message")
     @classmethod
@@ -132,10 +143,26 @@ class ChatRequest(BaseModel):
 def chat(req: ChatRequest):
     """One customer message -> the agent's reply. Always answers with a
     'reply' the channel can send, even when something fails inside
-    (then ok=false and 'error' says what broke)."""
-    from agent.support_agent import handle_message  # loads the AI + documents once, on first use
+    (then ok=false and 'error' says what broke).
 
-    if req.conversation_id is not None:
+    Besides the reply, every response carries audit metadata for evaluation
+    tools: request_id, latency_ms, reason, intents, details, retrieved_chunks,
+    model, prompt_tokens, completion_tokens."""
+    from agent.support_agent import handle_message  # loads the AI + documents once, on first use
+    from agent import llm_client
+
+    if req.eval_mode:
+        # require_key has already checked the key, but with no key configured
+        # it lets everyone in. Eval mode skips all logging, so it needs a key.
+        if not API_KEY:
+            raise HTTPException(status_code=403,
+                                detail="eval_mode requires GLOWCARE_API_KEY to be set in .env.")
+        if req.session_id or req.conversation_id is not None:
+            raise HTTPException(status_code=422,
+                                detail="eval_mode can't be combined with session_id or conversation_id: "
+                                       "nothing is saved, so there is no chat to continue.")
+        conversation_id, new_chat = None, False
+    elif req.conversation_id is not None:
         if not nt.conversation_exists(req.conversation_id):
             raise HTTPException(status_code=404, detail=f"No conversation #{req.conversation_id}.")
         conversation_id, new_chat = req.conversation_id, False
@@ -144,13 +171,22 @@ def chat(req: ChatRequest):
     else:
         conversation_id, new_chat = _new_conversation(req.channel), True
 
+    meta = {"request_id": str(uuid.uuid4()), "eval_mode": req.eval_mode,
+            "model": f"{llm_client.LLM_PROVIDER}/{llm_client.MODEL_NAME}"}
+    llm_client.reset_request_usage()
+    started = time.perf_counter()
     try:
+        # conversation_id=None (eval mode) is the test-sheet path: nothing is
+        # read from or written to the chat tables.
         result = handle_message(req.message, conversation_id=conversation_id, verbose=False)
     except Exception as e:
         log.exception("handle_message failed")
         return {"ok": False, "reply": ERROR_REPLY, "conversation_id": conversation_id,
                 "new_chat": new_chat, "route": None, "escalated": False, "escalation": None,
-                "error": f"{type(e).__name__}: {e}"}
+                "error": f"{type(e).__name__}: {e}",
+                **meta, "latency_ms": _ms_since(started), "reason": None, "intents": None,
+                "details": None, "retrieved_chunks": None, **llm_client.request_usage()}
+    latency_ms = _ms_since(started)
 
     if new_chat and not req.session_id and req.conversation_id is None:
         # A one-off question (no session_id): nothing will continue this
@@ -176,7 +212,30 @@ def chat(req: ChatRequest):
         "escalated": bool(result["escalate"]),
         "escalation": escalation,
         "memory": result.get("memory"),
+        **meta,
+        "latency_ms": latency_ms,
+        "reason": result.get("reason"),
+        "intents": list(result.get("intents") or []),
+        # Decimal prices, dates etc. -> plain JSON values
+        "details": jsonable_encoder(result.get("details")),
+        "retrieved_chunks": _retrieved_chunks(result),
+        **llm_client.request_usage(),
     }
+
+
+def _ms_since(started: float) -> float:
+    return round((time.perf_counter() - started) * 1000, 1)
+
+
+def _retrieved_chunks(result: dict):
+    """The knowledge-base chunks the answer was based on, or None when the
+    route didn't search the documents. score = Chroma distance: LOWER is
+    more relevant (not a 0-1 similarity)."""
+    if result.get("route") != "knowledge" or not isinstance(result.get("details"), dict):
+        return None
+    return [{"id": c.get("id"), "text": c.get("text"), "score": c.get("distance"),
+             "source": c.get("source")}
+            for c in result["details"].get("chunks_used") or []]
 
 
 def _new_conversation(channel: str) -> int:

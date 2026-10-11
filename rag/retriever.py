@@ -56,7 +56,7 @@ def retrieve(query: str, top_k: int = DEFAULT_TOP_K, verbose: bool = True):
         {
             "query": the query string that was actually searched,
             "chunks": [
-                {"text": ..., "source": ..., "distance": ...},
+                {"id": ..., "text": ..., "source": ..., "section": ..., "distance": ...},
                 ...
             ],
             "context": all chunk texts joined together, ready to hand to
@@ -80,11 +80,13 @@ def retrieve(query: str, top_k: int = DEFAULT_TOP_K, verbose: bool = True):
     raw_chunks = results["documents"][0]
     raw_metadatas = results["metadatas"][0]
     raw_distances = results["distances"][0]
+    raw_ids = results["ids"][0]
 
     chunks = []
-    for text, metadata, distance in zip(raw_chunks, raw_metadatas, raw_distances):
+    for chunk_id, text, metadata, distance in zip(raw_ids, raw_chunks, raw_metadatas, raw_distances):
         if distance <= MAX_RELEVANT_DISTANCE:
             chunks.append({
+                "id": chunk_id,  # "<file>-<chunk index>", stable across re-ingests
                 "text": text,
                 "source": metadata["source"],
                 "section": metadata.get("section", metadata["source"]),

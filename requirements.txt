@@ -16,3 +16,4 @@ streamlit>=1.64  # dashboard uses st.badge, metric delta_arrow, dataframe row se
 fastapi>=0.115
 uvicorn>=0.30
 httpx>=0.27  # only for tests/test_api.py (FastAPI's test client)
+pytest>=8  # only for tests: `pytest` (fast, offline) and `pytest -m slow` (real DB + LLM)
